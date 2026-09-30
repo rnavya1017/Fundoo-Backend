@@ -87,7 +87,11 @@ public class ReminderServiceImpl implements ReminderService {
                 .findByIdAndNoteUserId(reminderId, user.getId())
                 .orElseThrow(() -> new ReminderNotFoundException("Reminder not found"));
 
+        Note note=reminder.getNote();
+        note.setReminderDate(null);
+        noteRepository.save(note);
         reminderRepository.delete(reminder);
+        log.info("Remainder deleted successfully for Note ID: {}",note.getId());
     }
 
     private ReminderResponseDTO convertToResponse(Reminder reminder) {
