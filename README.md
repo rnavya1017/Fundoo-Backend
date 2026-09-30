@@ -1,735 +1,599 @@
-# Fundoo Notes – Backend
+# Fundoo Notes Backend
 
-A secure and scalable **Fundoo Notes REST API** built using **Java 21 and Spring Boot**. The application provides user authentication, note management, labels, reminders, attachments, search, filtering, pagination, Redis-based token management, and asynchronous reminder notifications using JMS and ActiveMQ Artemis.
+## Overview
 
----
+Fundoo Notes is a Spring Boot REST API for a notes management
+application. The backend provides user authentication, secure note
+management, labels, reminders, attachments, search, filtering,
+pagination, archive, trash, restore, and permanent deletion.
 
-## 🚀 Features
+The application uses PostgreSQL for persistent data storage, Redis for
+JWT token management, and embedded Apache Artemis for messaging support.
 
-* User registration and login
-* JWT-based authentication
-* BCrypt password encryption
-* Stateless Spring Security
-* Redis-based JWT token validation and logout
-* Create, read, update and delete notes
-* Move notes to trash and permanently delete
-* Pin and unpin notes
-* Archive and unarchive notes
-* Restore notes from trash
-* Search notes by keyword
-* Filter notes by:
+## Features
 
-  * Pinned status
-  * Archived status
-  * Trash status
-  * Reminder
-  * Date
-  * Label
-* Pagination for notes
-* Create, update and delete labels
-* Attach files to notes
-* Reminder management
-* JMS-based reminder notifications
-* ActiveMQ Artemis embedded message broker
-* Dead Letter Queue (DLQ) configuration
-* Centralized exception handling
-* Input validation
-* AOP-based logging
-* PostgreSQL database integration
-* CORS support for Angular frontend
+### Authentication and Authorization
 
----
-
-## 🛠️ Technologies Used
-
-| Technology        | Purpose                        |
-| ----------------- | ------------------------------ |
-| Java 21           | Programming Language           |
-| Spring Boot 4.1.1 | Backend Framework              |
-| Spring Web MVC    | REST APIs                      |
-| Spring Data JPA   | Database Operations            |
-| Spring Security   | Authentication & Authorization |
-| JWT               | Token-Based Authentication     |
-| BCrypt            | Password Encryption            |
-| PostgreSQL        | Relational Database            |
-| Redis             | JWT Token Cache                |
-| JMS               | Messaging                      |
-| ActiveMQ Artemis  | Message Broker                 |
-| Spring AOP        | Logging                        |
-| Bean Validation   | Request Validation             |
-| Maven             | Build Tool                     |
-| Lombok            | Boilerplate Reduction          |
-
----
-
-## 🏗️ Project Architecture
-
-The backend follows a layered architecture:
-
-```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-PostgreSQL
-```
-
-Additional infrastructure:
-
-```text
-Client / Angular
-       ↓
-Spring Security
-       ↓
-JWT Authentication Filter
-       ↓
-Controller
-       ↓
-Service
-       ↓
-Repository
-       ↓
-PostgreSQL
-
-JWT Token
-    ↓
-Redis Token Cache
-
-Reminder
-    ↓
-JMS Producer
-    ↓
-ActiveMQ Artemis
-    ↓
-JMS Consumer
-    ↓
-Notification Processing
-```
-
----
-
-## 📁 Project Structure
-
-```text
-src/main/java/com/bridgelabz/fundoo/notes/
-
-├── aspect/
-│   └── LoggingAspect.java
-│
-├── config/
-│   ├── ArtemisConfig.java
-│   ├── JmsConfig.java
-│   └── RedisConfig.java
-│
-├── controller/
-│   ├── AuthController.java
-│   ├── NoteController.java
-│   ├── LabelController.java
-│   ├── ReminderController.java
-│   └── AttachmentController.java
-│
-├── dto/
-│   ├── AuthResponseDTO.java
-│   ├── LoginRequestDTO.java
-│   ├── RegisterRequestDTO.java
-│   ├── NoteRequestDTO.java
-│   ├── NoteResponseDTO.java
-│   ├── LabelRequestDTO.java
-│   ├── LabelResponseDTO.java
-│   ├── ReminderRequestDTO.java
-│   ├── ReminderResponseDTO.java
-│   └── ...
-│
-├── entity/
-│   ├── User.java
-│   ├── Note.java
-│   ├── Label.java
-│   ├── Reminder.java
-│   └── Attachment.java
-│
-├── exception/
-│   ├── GlobalExceptionHandler.java
-│   ├── ErrorResponse.java
-│   ├── UserNotFoundException.java
-│   ├── NoteNotFoundException.java
-│   ├── LabelNotFoundException.java
-│   ├── ReminderNotFoundException.java
-│   └── ...
-│
-├── jms/
-│   ├── NotificationProducer.java
-│   └── NotificationConsumer.java
-│
-├── redis/
-│   └── TokenCacheService.java
-│
-├── repository/
-│   ├── UserRepository.java
-│   ├── NoteRepository.java
-│   ├── LabelRepository.java
-│   ├── ReminderRepository.java
-│   └── AttachmentRepository.java
-│
-├── security/
-│   ├── JwtService.java
-│   ├── JwtAuthenticationFilter.java
-│   └── SecurityConfig.java
-│
-└── service/
-    ├── AuthService.java
-    ├── NoteService.java
-    ├── LabelService.java
-    ├── ReminderService.java
-    ├── AttachmentService.java
-    │
-    └── impl/
-        ├── AuthServiceImpl.java
-        ├── NoteServiceImpl.java
-        ├── LabelServiceImpl.java
-        ├── ReminderServiceImpl.java
-        └── AttachmentServiceImpl.java
-```
-
----
-
-## 🔐 Authentication Flow
-
-The application uses **JWT-based stateless authentication**.
-
-### Registration
-
-```text
-Client
-  ↓
-POST /api/auth/register
-  ↓
-Validate Request
-  ↓
-Encrypt Password using BCrypt
-  ↓
-Save User in PostgreSQL
-```
-
-### Login
-
-```text
-Client
-  ↓
-POST /api/auth/login
-  ↓
-Validate Email & Password
-  ↓
-Generate JWT
-  ↓
-Store Token in Redis
-  ↓
-Return JWT to Client
-```
-
-### Access Protected API
-
-```text
-Client
-  ↓
-Authorization: Bearer <JWT>
-  ↓
-JwtAuthenticationFilter
-  ↓
-Check Token in Redis
-  ↓
-Validate JWT
-  ↓
-Authenticate User
-  ↓
-Controller
-```
-
-JWT tokens are configured with a **1-hour expiration period**.
-
----
-
-## 📝 Notes Management
-
-Users can:
-
-* Create notes
-* View notes
-* Update notes
-* Move notes to trash
-* Permanently delete notes
-* Restore notes
-* Pin/unpin notes
-* Archive/unarchive notes
-* Search notes
-* Filter notes
-* Add/remove labels
-* Add reminders
-
-Deleting a note normally moves it to the **trash** instead of immediately removing it from the database.
-
-Permanent deletion is performed using:
-
-```text
-DELETE /api/notes/{id}/permanent
-```
-
----
-
-## 🏷️ Labels
-
-Each user can create and manage their own labels.
-
-Supported operations:
-
-```text
-POST   /api/labels
-GET    /api/labels
-PUT    /api/labels/{id}
-DELETE /api/labels/{id}
-```
-
-Notes and labels have a **Many-to-Many relationship**.
-
-```text
-Note ←→ Label
-```
-
----
-
-## ⏰ Reminders & JMS
-
-The backend uses **JMS with ActiveMQ Artemis** for reminder notification processing.
-
-When a reminder is created:
-
-```text
-Create Reminder
-      ↓
-Save Reminder
-      ↓
-Create JMS Message
-      ↓
-ActiveMQ Artemis Queue
-      ↓
-Notification Consumer
-      ↓
-Process Notification
-```
-
-Queue:
-
-```text
-fundoo.reminder.queue
-```
-
-The application also configures:
-
-* Maximum delivery attempts: `3`
-* Redelivery delay: `2000 ms`
-* Dead Letter Queue: `fundoo.reminder.dlq`
-
----
-
-## ⚡ Redis Token Management
-
-Redis is used to store active JWT tokens.
-
-```text
-Login
-  ↓
-Generate JWT
-  ↓
-Redis
-  ↓
-auth:token:<token>
-```
-
-During every authenticated request:
-
-```text
-JWT
- ↓
-Check Redis
- ↓
-Token exists?
- ↓
-Validate JWT
- ↓
-Allow Request
-```
-
-Logout removes the token from Redis, making the token invalid before its normal expiration.
-
----
-
-## 📎 File Attachments
-
-Users can upload attachments to their notes.
-
-Supported file types include:
-
-* PDF
-* JPG
-* JPEG
-* PNG
-* DOC
-* DOCX
-
-Maximum file size:
-
-```text
-5 MB
-```
-
-Uploaded files are stored in:
-
-```text
-uploads/
-```
-
-Attachment metadata such as filename, type, size, path and upload date is stored in PostgreSQL.
-
----
-
-## 🗄️ Database
-
-The application uses **PostgreSQL**.
-
-Main entities:
-
-```text
-User
- │
- ├── Notes
- │     ├── Labels
- │     ├── Reminders
- │     └── Attachments
- │
- └── Authentication Information
-```
-
-Entity relationships:
-
-```text
-User 1 ──────── * Note
-
-User 1 ──────── * Label
-
-Note * ──────── * Label
-
-Note 1 ──────── * Reminder
-
-Note 1 ──────── * Attachment
-```
-
-Hibernate automatically manages the database schema using:
-
-```properties
-spring.jpa.hibernate.ddl-auto=update
-```
-
----
-
-## 🔎 Search, Filtering & Pagination
-
-### Search
-
-```text
-GET /api/notes/search?keyword=java
-```
-
-### Filter by Pin
-
-```text
-GET /api/notes/filter/pinned?pinned=true
-```
-
-### Filter by Archive
-
-```text
-GET /api/notes/filter/archived?archived=true
-```
-
-### Filter by Trash
-
-```text
-GET /api/notes/filter/trashed?trashed=true
-```
-
-### Filter by Color
-
-```text
-GET /api/notes/filter/color?color=yellow
-```
-
-### Filter by Label
-
-```text
-GET /api/notes/filter/label?label=work
-```
-
-### Filter by Date
-
-```text
-GET /api/notes/filter/date?date=2026-09-26
-```
-
-### Pagination
-
-```text
-GET /api/notes/page?page=0&size=5
-```
-
----
-
-## 🌐 REST API Endpoints
-
-### Authentication
-
-| Method | Endpoint                    | Description          |
-| ------ | --------------------------- | -------------------- |
-| POST   | `/api/auth/register`        | Register user        |
-| POST   | `/api/auth/login`           | Login                |
-| POST   | `/api/auth/logout`          | Logout               |
-| POST   | `/api/auth/forgot-password` | Generate reset token |
-| POST   | `/api/auth/reset-password`  | Reset password       |
+-   User registration
+-   User login
+-   JWT-based authentication
+-   Secure password handling
+-   Logout with token invalidation
+-   Forgot password
+-   Reset password
+-   Spring Security protected APIs
 
 ### Notes
 
-| Method | Endpoint                    | Description        |
-| ------ | --------------------------- | ------------------ |
-| POST   | `/api/notes`                | Create note        |
-| GET    | `/api/notes`                | Get all notes      |
-| GET    | `/api/notes/{id}`           | Get note           |
-| PUT    | `/api/notes/{id}`           | Update note        |
-| DELETE | `/api/notes/{id}`           | Move to trash      |
-| GET    | `/api/notes/trash`          | Get trashed notes  |
-| PATCH  | `/api/notes/{id}/pin`       | Pin note           |
-| PATCH  | `/api/notes/{id}/unpin`     | Unpin note         |
-| PATCH  | `/api/notes/{id}/archive`   | Archive note       |
-| PATCH  | `/api/notes/{id}/unarchive` | Unarchive note     |
-| PATCH  | `/api/notes/{id}/restore`   | Restore note       |
-| DELETE | `/api/notes/{id}/permanent` | Permanently delete |
-| GET    | `/api/notes/search`         | Search notes       |
-| GET    | `/api/notes/page`           | Paginated notes    |
+-   Create notes
+-   View all notes
+-   View a note by ID
+-   Update notes
+-   Move notes to trash
+-   Restore notes
+-   Permanently delete notes
+-   Pin and unpin notes
+-   Archive and unarchive notes
+-   Search notes
+-   Filter notes by:
+    -   Pinned status
+    -   Archived status
+    -   Trashed status
+    -   Reminder
+    -   Date
+    -   Color
+    -   Label
+-   Pagination
+-   Add labels to notes
+-   Remove labels from notes
 
 ### Labels
 
-| Method | Endpoint           | Description  |
-| ------ | ------------------ | ------------ |
-| POST   | `/api/labels`      | Create label |
-| GET    | `/api/labels`      | Get labels   |
-| PUT    | `/api/labels/{id}` | Update label |
-| DELETE | `/api/labels/{id}` | Delete label |
+-   Create labels
+-   View labels
+-   Update labels
+-   Delete labels
+-   Assign labels to notes
+-   Remove labels from notes
 
 ### Reminders
 
-| Method | Endpoint                   | Description     |
-| ------ | -------------------------- | --------------- |
-| POST   | `/api/notes/{id}/reminder` | Create reminder |
-| GET    | `/api/reminders`           | Get reminders   |
-| DELETE | `/api/reminders/{id}`      | Delete reminder |
+-   Create reminders for notes
+-   View reminders
+-   Delete reminders
 
 ### Attachments
 
-| Method | Endpoint                      | Description       |
-| ------ | ----------------------------- | ----------------- |
-| POST   | `/api/notes/{id}/attachments` | Upload attachment |
-| GET    | `/api/notes/{id}/attachments` | Get attachments   |
-| DELETE | `/api/attachments/{id}`       | Delete attachment |
+-   Upload attachments to notes
+-   View note attachments
+-   Delete attachments
 
----
+## Technology Stack
 
----
+### Backend
 
-## ▶️ Run the Application
+-   Java 21
+-   Spring Boot 4.1.1
+-   Spring Web MVC
+-   Spring Data JPA
+-   Hibernate
+-   Spring Security
+-   Spring Validation
+-   Spring AOP
+-   Spring Data Redis
+-   Apache Artemis
+-   JWT
+-   PostgreSQL
+-   Maven
+-   Lombok
+-   Springdoc OpenAPI
 
-Clone the repository:
+## Architecture
 
-```bash
-git clone <YOUR_BACKEND_REPOSITORY_URL>
+The project follows a layered Spring Boot architecture.
+
+``` text
+Controller
+    |
+    v
+Service
+    |
+    v
+Repository
+    |
+    v
+Database
 ```
 
-Navigate to the project:
+The main layers are:
 
-```bash
-cd FundooNotes
+``` text
+config
+controller
+dto
+entity
+exception
+repository
+redis
+security
+service
+aspect
 ```
 
-Run using Maven:
+### Controller Layer
 
-```bash
-mvn spring-boot:run
+Handles HTTP requests and responses.
+
+Main controllers:
+
+-   AuthController
+-   NoteController
+-   LabelController
+-   ReminderController
+-   AttachmentController
+
+### Service Layer
+
+Contains application business logic.
+
+Main services:
+
+-   AuthService
+-   NoteService
+-   LabelService
+-   ReminderService
+-   AttachmentService
+
+### Repository Layer
+
+Uses Spring Data JPA repositories for database operations.
+
+### DTO Layer
+
+DTOs are used to transfer request and response data between the client
+and server.
+
+### Entity Layer
+
+Contains JPA entities representing database tables.
+
+Main entities:
+
+-   User
+-   Note
+-   Label
+-   Reminder
+-   Attachment
+
+### Security Layer
+
+JWT authentication is implemented using Spring Security.
+
+Main security classes:
+
+-   SecurityConfig
+-   JwtAuthenticationFilter
+-   JwtService
+
+### Redis
+
+Redis is used by the token cache service for JWT token management and
+logout invalidation.
+
+### AOP
+
+Logging is implemented using Spring AOP.
+
+Main class:
+
+-   LoggingAspect
+
+## Database
+
+The application uses PostgreSQL.
+
+Default database configuration:
+
+``` properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/fundoo_notes_db
+spring.datasource.username=postgres
+spring.datasource.password=root
+spring.jpa.hibernate.ddl-auto=update
 ```
 
-On Windows:
+Create the database before starting the application:
 
-```bash
-mvnw.cmd spring-boot:run
+``` sql
+CREATE DATABASE fundoo_notes_db;
 ```
 
-The backend will start at:
+The application uses:
 
-```text
+``` properties
+spring.jpa.hibernate.ddl-auto=update
+```
+
+so Hibernate can update the database schema based on the entities.
+
+## Redis
+
+Redis is configured on the default local port:
+
+``` properties
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+```
+
+Make sure Redis is running before starting the backend.
+
+## Apache Artemis
+
+The application is configured to use embedded Artemis:
+
+``` properties
+spring.artemis.mode=embedded
+```
+
+## Application Configuration
+
+The backend runs on:
+
+``` text
 http://localhost:8080
 ```
 
----
+Important configuration from `application.properties`:
 
+``` properties
+server.port=8080
 
-## 🌐 Frontend Integration
+spring.application.name=FundooNotes
 
-The backend is configured to communicate with an Angular frontend running on:
+spring.datasource.url=jdbc:postgresql://localhost:5432/fundoo_notes_db
+spring.datasource.username=postgres
+spring.datasource.password=root
 
-```text
-http://localhost:4200
+jwt.expiration=3600000
+
+spring.data.redis.host=localhost
+spring.data.redis.port=6379
+
+spring.artemis.mode=embedded
+
+spring.servlet.multipart.max-file-size=5MB
+spring.servlet.multipart.max-request-size=6MB
 ```
 
-CORS is configured to allow:
+For a real deployment, replace development credentials and secrets with
+environment-specific secure values.
 
-```text
-http://localhost:4200
+## REST API
+
+Base URL:
+
+``` text
+http://localhost:8080
 ```
 
-The frontend sends JWT authentication using:
+### Authentication
 
-```text
-Authorization: Bearer <JWT_TOKEN>
+  Method   Endpoint                      Description
+  -------- ----------------------------- -------------------------------
+  POST     `/api/auth/register`          Register a new user
+  POST     `/api/auth/login`             Login
+  POST     `/api/auth/logout`            Logout
+  POST     `/api/auth/forgot-password`   Generate password reset token
+  POST     `/api/auth/reset-password`    Reset password
+
+### Notes
+
+  --------------------------------------------------------------------------------------------
+  Method                  Endpoint                                     Description
+  ----------------------- -------------------------------------------- -----------------------
+  POST                    `/api/notes`                                 Create a note
+
+  GET                     `/api/notes`                                 Get all notes
+
+  GET                     `/api/notes/{id}`                            Get note by ID
+
+  PUT                     `/api/notes/{id}`                            Update a note
+
+  DELETE                  `/api/notes/{id}`                            Move note to trash
+
+  GET                     `/api/notes/trash`                           Get trashed notes
+
+  PATCH                   `/api/notes/{id}/pin`                        Pin a note
+
+  PATCH                   `/api/notes/{id}/unpin`                      Unpin a note
+
+  PATCH                   `/api/notes/{id}/archive`                    Archive a note
+
+  PATCH                   `/api/notes/{id}/unarchive`                  Unarchive a note
+
+  PATCH                   `/api/notes/{id}/restore`                    Restore a note
+
+  DELETE                  `/api/notes/{id}/permanent`                  Permanently delete a
+                                                                       note
+
+  GET                     `/api/notes/search?keyword=...`              Search notes
+
+  GET                     `/api/notes/filter/pinned?pinned=true`       Filter by pinned status
+
+  GET                     `/api/notes/filter/archived?archived=true`   Filter by archived
+                                                                       status
+
+  GET                     `/api/notes/filter/trashed?trashed=true`     Filter by trash status
+
+  GET                     `/api/notes/filter/reminder`                 Get notes with
+                                                                       reminders
+
+  GET                     `/api/notes/filter/date?date=YYYY-MM-DD`     Filter by date
+
+  GET                     `/api/notes/filter/color?color=...`          Filter by color
+
+  GET                     `/api/notes/filter/label?label=...`          Filter by label
+
+  GET                     `/api/notes/page?page=0&size=5`              Get paginated notes
+
+  POST                    `/api/notes/{id}/labels?labelId=...`         Add label to a note
+
+  DELETE                  `/api/notes/{id}/labels/{labelId}`           Remove label from a
+                                                                       note
+  --------------------------------------------------------------------------------------------
+
+### Labels
+
+  Method   Endpoint             Description
+  -------- -------------------- ----------------
+  POST     `/api/labels`        Create a label
+  GET      `/api/labels`        Get all labels
+  PUT      `/api/labels/{id}`   Update a label
+  DELETE   `/api/labels/{id}`   Delete a label
+
+### Reminders
+
+  Method   Endpoint                     Description
+  -------- ---------------------------- -------------------
+  POST     `/api/notes/{id}/reminder`   Create a reminder
+  GET      `/api/reminders`             Get all reminders
+  DELETE   `/api/reminders/{id}`        Delete a reminder
+
+### Attachments
+
+  Method   Endpoint                        Description
+  -------- ------------------------------- ----------------------
+  POST     `/api/notes/{id}/attachments`   Upload an attachment
+  GET      `/api/notes/{id}/attachments`   Get note attachments
+  DELETE   `/api/attachments/{id}`         Delete an attachment
+
+## Authentication Flow
+
+The authentication flow is:
+
+``` text
+Client
+  |
+  | Register/Login
+  v
+AuthController
+  |
+  v
+AuthService
+  |
+  v
+User Repository
+  |
+  v
+PostgreSQL
+
+Login
+  |
+  v
+JWT Token
+  |
+  v
+Client
+  |
+  | Authorization: Bearer <JWT>
+  v
+JwtAuthenticationFilter
+  |
+  v
+Protected Controller
 ```
 
----
+The frontend sends the JWT token using the Authorization header:
 
-## 🧪 Testing
-
-Run the test suite using:
-
-```bash
-mvn test
+``` text
+Authorization: Bearer <JWT>
 ```
 
-The project contains Spring Boot test configuration under:
+## Running the Application
 
-```text
-src/test/
+### Prerequisites
+
+Install and configure:
+
+-   Java 21
+-   Maven
+-   PostgreSQL
+-   Redis
+
+### 1. Start PostgreSQL
+
+Make sure PostgreSQL is running.
+
+Create the database:
+
+``` sql
+CREATE DATABASE fundoo_notes_db;
 ```
 
----
+### 2. Start Redis
 
-## 📊 Logging
+Make sure Redis is running on:
 
-The application uses logging for monitoring backend operations.
+``` text
+localhost:6379
+```
 
-Log file:
+### 3. Open the project
 
-```text
+Go to the directory containing `pom.xml`.
+
+### 4. Install dependencies and run
+
+Using Maven:
+
+``` bash
+mvn spring-boot:run
+```
+
+On Windows, Maven Wrapper can be used:
+
+``` bat
+mvnw.cmd spring-boot:run
+```
+
+### 5. Verify the backend
+
+The backend should start on:
+
+``` text
+http://localhost:8080
+```
+
+## Build the Application
+
+To compile and package the project:
+
+``` bash
+mvn clean package
+```
+
+To skip tests:
+
+``` bash
+mvn clean package -DskipTests
+```
+
+## API Documentation
+
+Springdoc OpenAPI is included in the project.
+
+After starting the application, Swagger UI is available at:
+
+``` text
+http://localhost:8080/swagger-ui/index.html
+```
+
+The OpenAPI specification is available at:
+
+``` text
+http://localhost:8080/v3/api-docs
+```
+
+## File Upload Limits
+
+The application is configured with:
+
+``` properties
+spring.servlet.multipart.max-file-size=5MB
+spring.servlet.multipart.max-request-size=6MB
+```
+
+Individual uploaded files can be up to 5 MB.
+
+## Logging
+
+Application logging is configured with:
+
+``` properties
+logging.level.com.bridgelabz.fundoo.notes=INFO
+logging.file.name=logs/application.log
+```
+
+Logs are written to:
+
+``` text
 logs/application.log
 ```
 
-AOP logging is implemented using:
+## Project Structure
 
-```text
-LoggingAspect.java
+``` text
+FundooNotes/
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/bridgelabz/fundoo/notes/
+│   │   │       ├── aspect/
+│   │   │       ├── config/
+│   │   │       ├── controller/
+│   │   │       ├── dto/
+│   │   │       ├── entity/
+│   │   │       ├── exception/
+│   │   │       ├── redis/
+│   │   │       ├── repository/
+│   │   │       ├── security/
+│   │   │       └── service/
+│   │   └── resources/
+│   │       └── application.properties
+│   └── test/
+├── pom.xml
+├── mvnw
+├── mvnw.cmd
+└── INTEGRATION-README.md
 ```
 
-This helps track service-layer operations and application behavior.
+## Error Handling
 
----
+The application uses a global exception handler:
 
-## 🛡️ Exception Handling
-
-The application uses centralized exception handling through:
-
-```text
+``` text
 GlobalExceptionHandler
 ```
 
-Custom exceptions include:
+It provides centralized handling for application exceptions and returns
+structured error responses.
 
-```text
-UserNotFoundException
-NoteNotFoundException
-LabelNotFoundException
-ReminderNotFoundException
-AttachmentNotFoundException
-DuplicateEmailException
-InvalidPasswordException
-InvalidTokenException
+Examples of custom exceptions include:
+
+-   UserNotFoundException
+-   NoteNotFoundException
+-   LabelNotFoundException
+-   ReminderNotFoundException
+-   AttachmentNotFoundException
+-   DuplicateEmailException
+-   InvalidPasswordException
+-   InvalidTokenException
+
+## Frontend Integration
+
+The backend is designed to work with an Angular frontend running on:
+
+``` text
+http://localhost:4200
 ```
 
-This provides consistent error responses to API clients.
+The integration configuration allows the Angular application to
+communicate with the Spring Boot REST API.
 
----
+The frontend uses JWT authentication for protected requests.
 
-## 🔄 Complete Application Flow
+## Development Notes
 
-```text
-Angular Frontend
-       │
-       ▼
-REST Controller
-       │
-       ▼
-JWT Authentication Filter
-       │
-       ├──────────► Redis Token Validation
-       │
-       ▼
-Service Layer
-       │
-       ├──────────► PostgreSQL
-       │
-       ├──────────► Redis
-       │
-       └──────────► JMS Producer
-                         │
-                         ▼
-                  ActiveMQ Artemis
-                         │
-                         ▼
-                  JMS Consumer
-                         │
-                         ▼
-                    Notification
-```
+-   PostgreSQL is the primary persistent database.
+-   Redis is used for token caching and token invalidation.
+-   JWT is used for stateless authentication.
+-   JPA/Hibernate handles database persistence.
+-   Validation is applied to request DTOs.
+-   AOP is used for logging.
+-   Apache Artemis is configured for messaging support.
+-   Swagger/OpenAPI is included for API documentation.
+-   Multipart upload support is enabled for note attachments.
 
----
+## License
 
-## 👩‍💻 Author
-
-**R Navya**
-
-Java Backend / Full Stack Developer
-
-### Technologies
-
-```text
-Java | Spring Boot | Spring Security | JWT
-PostgreSQL | JPA | Redis | JMS
-ActiveMQ Artemis | REST API | Maven
-```
-
----
-
-## 📌 Project Highlights
-
-This project demonstrates practical implementation of:
-
-* RESTful API development
-* Layered backend architecture
-* Spring Security and JWT authentication
-* Password encryption using BCrypt
-* Redis caching
-* PostgreSQL database management
-* JPA entity relationships
-* File upload handling
-* Search and filtering
-* Pagination
-* JMS messaging
-* ActiveMQ Artemis
-* Dead Letter Queue
-* AOP logging
-* Global exception handling
-* DTO-based API design
-* Angular and Spring Boot integration
+This project does not define a specific open-source license in the
+current Maven project configuration.
